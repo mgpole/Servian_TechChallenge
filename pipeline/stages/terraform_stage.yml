@@ -1,0 +1,169 @@
+parameters:
+- name: environment_name 
+  type: string 
+- name: arm_service_connection  
+  type: string
+- name: use_variable_group
+  type: boolean
+  default: false  #changing to true will reference a variable group called {product_name}-{environment_name}-lib
+
+stages:
+- stage: ${{ parameters.environment_name }}
+  variables:
+  - template: ../variables/global_variables.yml  
+  - template: ${{ lower(format('../variables/{0}_variables.yml', parameters.environment_name)) }}  #environment specific variables
+  - ${{ if eq(parameters.use_variable_group, true) }}:  #optional reference to variable group
+    - group: ${{ format('{0}-{1}-lib', variables.product_name, parameters.environment_name ) }} 
+  #some variables are one to one parameter mappings to expose them as environment variables
+  - name: environment_name #Azure DevOps environment name and used in naming some resources
+    value: ${{ parameters.environment_name }}
+  - name: trf_state_cntnr  #used as env var in powershell to create remote state container ex: app-gateway-d1
+    value : ${{ format('{0}-{1}', parameters.environment_name, variables.product_name ) }} 
+  #Dynamic environment specific terraform variables, static variables are in /terraform/{env}.tfvars files, variables must be prefixed with TF_VAR_ and capatilised for terraform to pick them up from environment varaibles
+  - name: TF_VAR_ENVIRONMENT_NAME
+    value : ${{ parameters.environment_name }}   #ex: dev
+  
+  jobs:
+  #Require deployment approval for environments in require_deploy_approval var that are on the main branch (other branches will only plan and skip apply)
+  - job: env_approval_gate
+    displayName: Approve Env. Deployment
+    pool: server
+    timeoutInMinutes: 4320 #3 days timeout
+    steps:
+    - task: ManualValidation@0   
+      displayName: Approve Env. Deployment
+      #for any new environments add an eq condition if it requires deployment approval     
+      condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/main'), or(eq(variables.environment_name, 'test'), eq(variables.environment_name, 'prod'))  ) 
+      timeoutInMinutes: 4320 #3 days timeout
+      inputs:
+        instructions: 'Approve deployment to $(environment_name) environment'
+        onTimeout: 'reject'
+
+  #Create a container for this environment in the landing zone terraform remote state account
+  - job: terraform_setup
+    dependsOn: env_approval_gate
+    displayName: Create Terraform Remote State 
+
+    steps:
+    - task: AzurePowerShell@5
+      name: terra_setup_ps
+      displayName: Run State Powershell 
+      inputs:
+        azureSubscription: ${{ parameters.arm_service_connection }}
+        scriptType: 'FilePath'
+        scriptPath: scripts/setup_terraform_state.ps1
+        azurePowerShellVersion: 'latestVersion'
+        pwsh: true 
+
+  #Install and initialise terraform, generate and upload plan file
+  - job: terraform_init_plan
+    dependsOn: [terraform_setup, env_approval_gate] 
+    displayName: Terraform Init and Plan
+    workspace:
+      clean: all 
+    
+    steps:
+    - task: TerraformInstaller@0
+      displayName: Terraform Install $(trf_version)
+      inputs:
+        terraformVersion: $(trf_version)
+
+    - task: TerraformTaskV2@2
+      displayName: Terraform Init
+      inputs: 
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+        commandOptions: '-input=false'
+        backendServiceArm: ${{ parameters.arm_service_connection }}
+        backendAzureRmResourceGroupName: $(trf_state_rg)
+        backendAzureRmStorageAccountName: $(trf_state_acc)
+        backendAzureRmContainerName: $(trf_state_cntnr)
+        backendAzureRmKey: 'instance.tfstate'
+
+    - task: AzurePowerShell@5
+      displayName: Look up log analytics workspace
+      name: lookup_la
+      inputs:
+        azureSubscription: ${{ parameters.arm_service_connection }}
+        azurePowerShellVersion: LatestVersion
+        ScriptType: InlineScript
+        Inline: |
+          $resource = Get-AzResource -ResourceGroupName $(TF_VAR_LZ_RESOURCE_GROUP) -ResourceType Microsoft.OperationalInsights/workspaces
+          Write-Host "##vso[task.setvariable variable=TF_VAR_LZ_LOG_ANALYITICS;issecret=false]$($resource.Name)"
+
+    - task: TerraformTaskV2@2
+      displayName: Terraform Plan
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+        commandOptions: '-out=$(environment_name)_instance_tfplan -input=false -var-file=$(environment_name).tfvars'
+        environmentServiceNameAzureRM: ${{ parameters.arm_service_connection }}
+    
+    - task: PublishPipelineArtifact@1
+      displayName: Upload Plan file
+      inputs:
+        targetPath: '$(System.DefaultWorkingDirectory)/terraform/$(environment_name)_instance_tfplan'
+        artifactName: $(environment_name)_instance_planfile
+
+  #Require plan approval for environments in require_plan_approval var that are on the main branch (other branches will only plan and skip apply)
+  - job: plan_approval_gate
+    displayName: Validate Deployment Plan
+    pool: server
+    timeoutInMinutes: 4320 #3 days timeout
+    dependsOn: [terraform_setup, env_approval_gate, terraform_init_plan] 
+    steps:
+    - task: ManualValidation@0
+      displayName: Validate Terraform Plan    
+      #for any new environments add an eq condition if it requires terraform plan approval     
+      condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/main'), or(eq(variables.environment_name, 'dev'), eq(variables.environment_name, 'test'), eq(variables.environment_name, 'prod')) ) 
+      timeoutInMinutes: 4320 #3 days timeout
+      inputs:
+        instructions: 'Please validate Terraform plan output'
+        onTimeout: 'reject'
+
+  #Terraform apply only from main branch
+  - deployment: terraform_deploy
+    displayName: Terraform Apply
+    environment: ${{ parameters.environment_name  }} #May be should be ${{ format('{0}_{1}',variables.product_name, parameters.environment_name) }} to differentiate application envs in the same Azure DevOps project 
+    condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/main'))    
+    dependsOn: [terraform_setup, plan_approval_gate]
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+
+          - task: TerraformInstaller@0
+            displayName: Terraform Install $(trf_version)
+            inputs:
+              terraformVersion: $(trf_version)
+
+          - task: TerraformTaskV2@2
+            displayName: Terraform Init
+            inputs: 
+              provider: 'azurerm'
+              command: 'init'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+              commandOptions: '-input=false'
+              backendServiceArm: ${{ parameters.arm_service_connection }}
+              backendAzureRmResourceGroupName: $(trf_state_rg)
+              backendAzureRmStorageAccountName: $(trf_state_acc)
+              backendAzureRmContainerName: $(trf_state_cntnr)
+              backendAzureRmKey: 'instance.tfstate'
+
+          - task: DownloadPipelineArtifact@2
+            displayName: Download Plan File
+            inputs:
+              source: 'current'
+              artifact: $(environment_name)_instance_planfile
+              path: '$(System.DefaultWorkingDirectory)/terraform'
+
+          - task: TerraformTaskV2@2
+            displayName: Terraform Apply
+            inputs:
+              command: apply
+              workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+              commandOptions: '-input=false -auto-approve $(environment_name)_instance_tfplan'
+              environmentServiceNameAzureRM: ${{ parameters.arm_service_connection }}
