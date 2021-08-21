@@ -7,6 +7,7 @@ $location = $env:TRF_LOCATION
 
 Write-Output "rgname = $rgname"
 Write-Output "store_name = $store_name"
+Write-Output "container_name = $cntnr_name"
 Write-Output "location = $location"
 
 #Get storage account

@@ -47,7 +47,7 @@ stages:
     steps:
     - task: AzurePowerShell@5
       name: terra_setup_ps
-      displayName: Run State Powershell 
+      displayName: Run TF-State Powershell 
       inputs:
         azureSubscription: ${{ parameters.arm_service_connection }}
         scriptType: 'FilePath'
@@ -81,18 +81,7 @@ stages:
         backendAzureRmContainerName: $(trf_state_cntnr)
         backendAzureRmKey: 'instance.tfstate'
 
-    - task: AzurePowerShell@5
-      displayName: Look up log analytics workspace
-      name: lookup_la
-      inputs:
-        azureSubscription: ${{ parameters.arm_service_connection }}
-        azurePowerShellVersion: LatestVersion
-        ScriptType: InlineScript
-        Inline: |
-          $resource = Get-AzResource -ResourceGroupName $(TF_VAR_LZ_RESOURCE_GROUP) -ResourceType Microsoft.OperationalInsights/workspaces
-          Write-Host "##vso[task.setvariable variable=TF_VAR_LZ_LOG_ANALYITICS;issecret=false]$($resource.Name)"
-
-    - task: TerraformTaskV2@2
+        - task: TerraformTaskV2@2
       displayName: Terraform Plan
       inputs:
         provider: 'azurerm'
@@ -126,7 +115,7 @@ stages:
   #Terraform apply only from main branch
   - deployment: terraform_deploy
     displayName: Terraform Apply
-    environment: ${{ parameters.environment_name  }} #May be should be ${{ format('{0}_{1}',variables.product_name, parameters.environment_name) }} to differentiate application envs in the same Azure DevOps project 
+    environment: ${{ parameters.environment_name  }} 
     condition: and(succeeded(), eq(variables['build.sourceBranch'], 'refs/heads/main'))    
     dependsOn: [terraform_setup, plan_approval_gate]
     strategy:
