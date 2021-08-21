@@ -11,7 +11,7 @@ stages:
 - stage: ${{ parameters.environment_name }}
   variables:
   - template: ../variables/global_variables.yml  
-  - template: ${{ lower(format('../variables/{0}_variables.yml', parameters.environment_name)) }}  #environment specific variables
+  #- template: ${{ lower(format('../variables/{0}_variables.yml', parameters.environment_name)) }}  #environment specific variables
   - ${{ if eq(parameters.use_variable_group, true) }}:  #optional reference to variable group
     - group: ${{ format('{0}-{1}-lib', variables.product_name, parameters.environment_name ) }} 
   #some variables are one to one parameter mappings to expose them as environment variables
