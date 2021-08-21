@@ -13,12 +13,12 @@ stages:
       environment_name: dev
       arm_service_connection: "Azure DevOps"
   - stage: init
-  jobs:
-  - job: init
-    pool:
-      vmImage: 'Ubuntu-latest'
-    continueOnError: true
-    steps:
-    - script: echo "init step"
+    jobs:
+     - job: init
+       pool:
+         vmImage: 'Ubuntu-latest'
+       continueOnError: true
+       steps:
+       - script: echo "init step"
 
               
