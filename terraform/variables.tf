@@ -41,3 +41,11 @@ variable "db_version" {
 variable "app_db_name" {
     type = string
 }
+
+locals {
+common_tags = tomap({
+    "Product" = var.PRODUCT_NAME,
+    "Environment" = var.ENVIRONMENT_NAME,
+    "Deployment Method" = "Terraform"
+  })
+}

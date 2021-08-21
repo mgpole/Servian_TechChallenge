@@ -5,7 +5,7 @@ terraform {
       version = "~> 2.73.0"
     }
   }
-  
+
   backend "azurerm" {
   }
 }
@@ -17,12 +17,14 @@ provider "azurerm" {
 resource "azurerm_resource_group" "pri_rg" {
   name     = join("-", [var.ENVIRONMENT_NAME, var.PRODUCT_NAME, "rg"])
   location = var.pri_location
+  tags     = local.common_tags
 }
 
 resource "azurerm_postgresql_server" "pg_db" {
   name                = join("-", [var.ENVIRONMENT_NAME, var.PRODUCT_NAME, "psqlserver"])
   location            = var.pri_location
   resource_group_name = azurerm_resource_group.pri_rg.name
+  tags                = local.common_tags
 
   sku_name = var.db_sku
 
