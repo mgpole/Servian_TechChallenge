@@ -3,7 +3,7 @@ variables:
   trf_state_rg: terraform-state
   trf_state_acc: terrafrormst0245
   trf_location : australiaeast
-  trf_version: 1.0.2
+  trf_version: 1.0.5
 
   #Variables for terraform
   TF_VAR_PRODUCT_NAME: $(product_name)
