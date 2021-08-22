@@ -7,3 +7,5 @@ variables:
 
   #Variables for terraform
   TF_VAR_PRODUCT_NAME: $(product_name)
+  TF_VAR_DB_ADMIN_LOGIN: $(db_admin_login)
+  TF_VAR_DB_ADMIN_PASSWORD: $(db_admin_password)

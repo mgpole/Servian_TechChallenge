@@ -12,6 +12,7 @@ stages:
     parameters:
       environment_name: dev
       arm_service_connection: "Azure DevOps"
+      use_variable_group: true
 #  - stage: init
 #    jobs:
 #     - job: init
