@@ -87,7 +87,7 @@ stages:
         provider: 'azurerm'
         command: 'plan'
         workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
-        commandOptions: '-out=$(environment_name)_instance_tfplan -input=false -var-file=$(environment_name).tfvars'
+        commandOptions: '-out=$(environment_name)_instance_tfplan -input=false -var-file=$(environment_name).tfvars -var "db_admin_login=$(db_admin_login)" -var "db_admin_password=$(db_admin_password)"'
         environmentServiceNameAzureRM: ${{ parameters.arm_service_connection }}
     
     - task: PublishPipelineArtifact@1
