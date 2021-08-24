@@ -42,6 +42,18 @@ variable "app_db_name" {
     type = string
 }
 
+variable "docker_image" {
+    type = string
+}
+variable "asp_tier" {
+    type = string
+}
+variable "asp_size" {
+    type = string
+}
+variable "asp_max_workers" {
+    type = number
+}
 locals {
 common_tags = tomap({
     "Product" = var.PRODUCT_NAME,
