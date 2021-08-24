@@ -4,5 +4,6 @@ db_backup_retention = 7
 db_version          = "10"
 app_db_name         = "tododb"
 asp_tier            = "Standard"
+docker_image        = "servian/techchallengeapp:latest"
 asp_size            = "s1"
 asp_max_workers     = 1
