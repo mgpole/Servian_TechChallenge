@@ -2,10 +2,10 @@
 This code deploys the Servian Tech Challenge "Todo" app into an Azure environment.
 
 # Overview
-![Azure ToDo app overview](/doc/img/azure_diagram.png "Azure Diagram")
-
-The Tech Challenge “ToDo” runs on native Azure PaaS services to deliver a highly available and scalable application. The main resources used in this solution are Azure App Services, PostgreSQL and Container Instances.
+The Tech Challenge “ToDo” application runs on native Azure PaaS services to deliver a highly available and scalable application. The main resources used in this solution are Azure App Services, PostgreSQL and Container Instances.
 The solution is designed to be deployed via Azure DevOps Pipelines from a Terraform IaC template stored in a Git repository.
+
+![Azure ToDo app overview](/doc/img/azure_diagram.png "Azure Diagram")
 
 ## App Services
 Azure App services runs the web front-end Docker container on an App Service Plan. The container is pulled directly from Docker Hub.
