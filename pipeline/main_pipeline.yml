@@ -10,16 +10,21 @@ trigger:
 stages:
   - template: stages/terraform_stage.yml
     parameters:
-      environment_name: dev
-      arm_service_connection: "Azure DevOps"
+        environment_name: dev
+        arm_service_connection: "Azure DevOps"
       use_variable_group: true
-#  - stage: init
-#    jobs:
-#     - job: init
-#       pool:
-#         vmImage: 'Ubuntu-latest'
-#       continueOnError: true
-#       steps:
-#       - script: echo "init step"
+
+#- template: stages/terraform_stage.yml
+#    parameters:
+#      environment_name: test
+#      arm_service_connection: "Azure DevOps"
+#      use_variable_group: true
+
+#- template: stages/terraform_stage.yml
+#    parameters:
+#      environment_name: prod
+#      arm_service_connection: "Azure DevOps"
+#      use_variable_group: true
+
 
               

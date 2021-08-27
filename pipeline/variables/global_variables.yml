@@ -1,8 +1,8 @@
 variables:
-  product_name: todo  #used to name resource group ex: app-gateway
-  trf_state_rg: terraform-state
-  trf_state_acc: terrafrormst0245
-  trf_location : australiaeast
+  product_name: todo  #used to name product resource group
+  trf_state_rg: terraform-state #TF storage account resource group
+  trf_state_acc: terrafrormst0245 #TF storage account name
+  trf_location : australiaeast #TF storage account location
   trf_version: 1.0.5
 
   #Variables for terraform
