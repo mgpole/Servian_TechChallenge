@@ -61,13 +61,13 @@ Terraform environment variables for each environment are stored in **<environmen
 1. Configure required pipeline environments.
 2. Configure pipeline variable groups for each environment.
 3. Update stage parameters in **main_pipeline.yml** file with environment name and service connection name. 
-    a. environment_name:<env> 
-    b. arm_service_connection:<service connection name>
+    * environment_name:<env> 
+    * arm_service_connection:<service connection name>
 4. Update **global_variables.yml** with required values for product name and terraform storage account details. 
-    a. product_name: <product name>
-    b. trf_state_rg: <storage account resource group> 
-    c. trf_state_acc: <storage account name> 
-    d. trf_location : <storage account location> 
+    * product_name: <product name>
+    * trf_state_rg: <storage account resource group> 
+    * trf_state_acc: <storage account name> 
+    * trf_location : <storage account location> 
 5. Create a new Azure DevOps pipeline referencing main_pipeline.yml file. 
 6. Run the pipeline to deploy the solution. 
 
